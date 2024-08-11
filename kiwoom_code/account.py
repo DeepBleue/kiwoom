@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QAxContainer import *
 from config.kiwoomType import *
 from config.errorCode import errors
+from kiwoom_code.trdata_handler import trdata_slot
 
 
 class AccountFunctions:
@@ -16,7 +17,11 @@ class AccountFunctions:
     
     def event_slot(self):
         self.kiwoom.OnEventConnect.connect(self.login_slot)
+        self.kiwoom.OnReceiveTrData.connect(self.handle_trdata_slot)
         self.kiwoom.OnReceiveMsg.connect(self.msg_slot)
+
+    def handle_trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
+        trdata_slot(self.kiwoom, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext)
         
     def login_slot(self, errCode):
         err = errors(errCode)
@@ -55,4 +60,17 @@ class AccountFunctions:
         if sPrevNext == '0':
             self.kiwoom.account_eval_event_loop = QEventLoop()
             self.kiwoom.account_eval_event_loop.exec_()
+
+ 
+    def michaegul(self):
+        self.kiwoom.dynamicCall(f"SetInputValue(String,String)","계좌번호",self.kiwoom.account_num)
+        self.kiwoom.dynamicCall(f"SetInputValue(String,String)",'전체종목구분','0')
+        self.kiwoom.dynamicCall(f"SetInputValue(String,String)",'매매구분','0')
+        # self.dynamicCall(f"SetInputValue(String,String)",'종목코드','')
+        self.kiwoom.dynamicCall(f"SetInputValue(String,String)",'체결구분','0')
+        
+        self.kiwoom.dynamicCall(f"CommRqData(String,String,int,String)",'미체결요청','OPT10075', '0', self.kiwoom.screen_my_info)
+        
+        self.kiwoom.michaegul_event_loop = QEventLoop()
+        self.kiwoom.michaegul_event_loop.exec_()
 

@@ -54,17 +54,17 @@ class Kiwoom(QAxWidget):
         print('Kiwoom class')
         self.account.get_ocx_instance()             # 실행
         self.account.event_slot()                   # 이벤트 슬롯 
-        self.connect_event_slots()                  # TR event slot 
         self.account.signal_login_CommConnect()     # 로그인하기 
         self.account.get_account_info()             # 계좌번호가져오기
         self.account.detail_acc_info()              # 예수금 가져오기 
         self.account.account_eval()                 # 계좌평가잔고내역
+        self.account.michaegul()                    # 미체결조회
         
 
         ########### 실시간 
 
         self.real_event_slot()              # 실시간 데이터 슬롯 
-        self.michaegul()                    # 미체결조회
+        
         self.day_chart('005930')            # 일봉조회
         self.calculate_ma()                 # 보유종목 MA 구하기 
         # self.calculator_fn()                # 종목분석용
@@ -85,12 +85,6 @@ class Kiwoom(QAxWidget):
 
             self.day_chart(code) 
 
-    def connect_event_slots(self):
-        self.OnReceiveTrData.connect(self.handle_trdata_slot)
-
-
-    def handle_trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
-        trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext)
 
     
     def register_stock_on_real_time(self):
@@ -112,18 +106,6 @@ class Kiwoom(QAxWidget):
 
             
     
-    def michaegul(self):
-        self.dynamicCall(f"SetInputValue(String,String)","계좌번호",self.account_num)
-        self.dynamicCall(f"SetInputValue(String,String)",'전체종목구분','0')
-        self.dynamicCall(f"SetInputValue(String,String)",'매매구분','0')
-        # self.dynamicCall(f"SetInputValue(String,String)",'종목코드','')
-        self.dynamicCall(f"SetInputValue(String,String)",'체결구분','0')
-        
-        self.dynamicCall(f"CommRqData(String,String,int,String)",'미체결요청','OPT10075', '0', self.screen_my_info)
-        
-        self.michaegul_event_loop = QEventLoop()
-        self.michaegul_event_loop.exec_()
-        
     def day_chart(self,code,date=None,sPrevNext='0'):
         
         QTest.qWait(3600)
@@ -139,63 +121,7 @@ class Kiwoom(QAxWidget):
             self.day_chart_event_loop = QEventLoop()
             self.day_chart_event_loop.exec_()
             
-    def get_code_list_by_market(self,market_code):  # 마켓에 있는 종목코드 반환 
-        '''
-          0 : 코스피
-          10 : 코스닥
-          3 : ELW
-          8 : ETF
-          50 : KONEX
-          4 :  뮤추얼펀드
-          5 : 신주인수권
-          6 : 리츠
-          9 : 하이얼펀드
-          30 : K-OTC
-        '''
-        
-        code_list = self.dynamicCall("GetCodeListByMarket(QString)",market_code)
-        code_list = code_list.split(';')[:-1]
-        
-        return code_list
-    
-    
-    def calculator_fn(self):  
-        '''
-        종목분석 함수 
-        '''
-        code_list = self.get_code_list_by_market('10')
-        
-        print(f'코스닥 종목 개수 : {len(code_list)}')
-        print('종목분석중 ...')
-        for idx , code in enumerate(code_list):
-            
-            self.dynamicCall('DisconnectRealData(QString)',self.day_chart_screen)
-            
-            
-            print(f"KOSDAQ {idx+1}/{len(code_list)} - {code} 분석중 ...")
-            self.day_chart(code=code)
-        
-        print('done')
 
-
-    def read_code(self):
-        
-        if os.path.exists("files/condition_stock.txt") : 
-            f = open("files/condition_stock.txt","r",encoding = 'utf8') 
-            
-            lines = f.readlines()
-            for line in lines : 
-                if line != '' : 
-                    ls = line.split('\t')
-                    
-                    stock_code = ls[0]
-                    stock_name = ls[1]
-                    stock_price = int(ls[2].split('\n')[0])
-                    stock_code = abs(stock_price)
-                    
-                    self.portfolio_stock_dict.update({stock_code:{'종목명':stock_name,'현재가':stock_price}})
-            f.close()
-            print(self.portfolio_stock_dict)
 
     def screen_number_set(self):
         
