@@ -19,8 +19,6 @@ class Kiwoom(QAxWidget):
         self.account = AccountFunctions(self)
 
 
-        
-        
         ########## 이벤트 루프 모음 
         
         self.login_event_loop = None
@@ -67,8 +65,6 @@ class Kiwoom(QAxWidget):
         
         self.day_chart('005930')            # 일봉조회
         self.calculate_ma()                 # 보유종목 MA 구하기 
-        # self.calculator_fn()                # 종목분석용
-        # self.read_code()                    # 저장된 종목들 불러오기 
         self.screen_number_set()            # 스크린번호세팅
         self.get_market_time()              # 장시간운영구분
         self.register_stock_on_real_time()  # 실시간 코드등록 , 주식체결 
@@ -127,19 +123,19 @@ class Kiwoom(QAxWidget):
         
         screen_overwrite = []
         
-        # 계좌평가잔고내역에 있는 종목들 
+        # 계좌평가잔고내역에 있는 종목들                 : 보유종목 
         for code in self.account_stock_dict.keys():
             if code not in screen_overwrite : 
                 screen_overwrite.append(code)
     
-        # 미체결에 있는 종목들 
+        # 미체결에 있는 종목들                           : 매매처리가 안된종목 ( 매도, 매수 포함)
         for order_no in self.michaegul_dict.keys():
             code = self.michaegul_dict[order_no]['종목코드']
             if code not in screen_overwrite : 
                 screen_overwrite.append(code)
 
                 
-        # 포트폴리오에 있는 종목들 
+        # 포트폴리오에 있는 종목들                        : 관심종목 
         for code in self.portfolio_stock_dict.keys():
             if code not in screen_overwrite : 
                 screen_overwrite.append(code)
