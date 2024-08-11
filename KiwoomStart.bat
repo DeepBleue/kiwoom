@@ -1,9 +1,9 @@
 @ECHO ON
 title Kiwoom Start
 
-cd C:\Users\pari0\Desktop\kiwoom
+cd C:\Users\Administrator\Desktop\kiwoom
 
-call activate trade_bot_32bit
+call activate trade_32bit
 
 python __init__.py
 

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QAxContainer import *
 from config.kiwoomType import *
 from config.errorCode import errors
-
+import numpy as np
 
 
 class Kiwoom(QAxWidget):
@@ -52,7 +52,7 @@ class Kiwoom(QAxWidget):
         self.detail_acc_info()              # 예수금 가져오기 
         self.account_eval()                 # 계좌평가잔고내역
         self.michaegul()                    # 미체결조회
-        # self.day_chart('005930')            # 일봉조회
+        self.day_chart('005930')            # 일봉조회
         # self.calculator_fn()                # 종목분석용
         # self.read_code()                    # 저장된 종목들 불러오기 
         self.screen_number_set()            # 스크린번호세팅
@@ -420,55 +420,69 @@ class Kiwoom(QAxWidget):
         if sRQName =='주식일봉차트초회요청' : 
             
             code = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,0,'종목코드') 
-            
             rows = self.dynamicCall("GetRepeatCnt(QString,QString)",sTrCode,sRQName)  # default : 600일
-            print(rows)
-            print(code)
+            # print(rows)
+            # print(code)
+
+            print(f'code : {code.strip()}')
             
-            if sPrevNext == '2':
-                self.day_chart(code=code,sPrevNext=sPrevNext)
-            
-            else : 
-                print(self.day_data_all)
-                self.day_chart_event_loop.exit()
+
+            ma_4 = []
+            ma_9 = []
+            ma_14 = []
+            ma_19 = []     
+            for i in range(rows):
+
                 
-                
-            # for i in range(rows):
-                
-            #     data = []
-                
-            #     close = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'현재가') 
+                close = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'현재가') 
             #     volume = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'거래량') 
             #     amount = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'거래대금') 
-            #     date = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'일자') 
+                date = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'일자') 
             #     open = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'시가') 
             #     high = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'고가') 
             #     low = self.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'저가') 
                 
             
-            #     close = int(close)
+                close = int(close)
             #     volume = int(volume)
             #     amount = int(amount)
-            #     date = date.strip()
+                date = date.strip()
             #     open = int(open)
             #     high = int(high)
             #     low = int(low)
             
                 
-            #     data.append("")
-            #     data.append(close)
-            #     data.append(amount)
-            #     data.append(date)
-            #     data.append(open)
-            #     data.append(high)
-            #     data.append(low)
-            #     data.append("")
-                
-            #     self.day_data_all.append(data.copy())
-                
-                
-            #     # print(f'[{date}] - open : {open} , high : {high} , low : {low} , close : {close} , volume : {volume} ')
-                
+                if i < 4 : 
+                    ma_4.append(close)
+
+                if i < 9 : 
+                    ma_9.append(close)
+
+                if i < 14 : 
+                    ma_14.append(close)
+
+                if i < 19 : 
+                    ma_19.append(close)
+            
+
+            ma_4 = np.mean(np.array(ma_4))
+            ma_9 = np.mean(np.array(ma_9))
+            ma_14 = np.mean(np.array(ma_14))
+            ma_19 = np.mean(np.array(ma_19))
+
+            print(ma_4)
+            print(ma_9)
+            print(ma_14)
+            print(ma_19)
+
+
+            self.day_chart_event_loop.exit()   
+            # if sPrevNext == '2':
+            #     self.day_chart(code=code,sPrevNext=sPrevNext)
+            
+            # else : 
+            #     print(self.day_data_all)
+            #     self.day_chart_event_loop.exit()   
     
     def real_data_slot(self,sCode,sRealType,sRealData):
         '''

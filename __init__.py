@@ -6,11 +6,7 @@ class Main():
         
         UI_class()
         
-        
-        
-        
-        
-        
+  
 
 if __name__ == '__main__':
     Main()
