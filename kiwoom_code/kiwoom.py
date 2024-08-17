@@ -37,11 +37,10 @@ class Kiwoom(QAxWidget):
         
         self.realType = RealType()
         self.account_num = None
-        self.account_stock_dict = {}
-        self.michaegul_dict = {}
-        self.day_data_all = []
-        self.portfolio_stock_dict = {}
-        self.jango_dict = {}
+        self.account_stock_dict = {}           # 계좌평가잔고내역에 있는 종목들
+        self.michaegul_dict = {}               # 미체결에 있는 종목들
+        self.jango_dict = {}                   # 실시간으로 잔고로 들어오거나 나가는 종목들
+        self.portfolio_stock_dict = {}         # 오늘의 관심 종목들 
         
         ########### 스크린번호 모음
         
@@ -52,27 +51,29 @@ class Kiwoom(QAxWidget):
         self.screen_meme_stock = '6000'   # 종목별 매매할 스크린 번호
         
         
-        ########### 함수 실행
+        ########### tr slot 
         
         print('Kiwoom class')
         self.account.get_ocx_instance()             # 실행
-        self.event_slot()                   # 이벤트 슬롯 
+        self.event_slot()                           # 이벤트 슬롯 
         self.account.signal_login_CommConnect()     # 로그인하기 
         self.account.get_account_info()             # 계좌번호가져오기
         self.account.detail_acc_info()              # 예수금 가져오기 
         self.account.account_eval()                 # 계좌평가잔고내역
         self.account.michaegul()                    # 미체결조회
-        
 
-        ########### 실시간 
+        ########### real slot  
 
         self.real_event_slot()              # 실시간 데이터 슬롯 
-        
-        self.tr_order.day_chart('005930')            # 일봉조회
-        self.calculate_ma()                 # 보유종목 MA 구하기 
         self.screen_number_set()            # 스크린번호세팅
         self.real_order.get_market_time()              # 장시간운영구분
         self.real_order.register_stock_on_real_time()  # 실시간 코드등록 , 주식체결 
+
+
+        ########### run script 
+
+        self.tr_order.day_chart('005930')            # 일봉조회
+        self.calculate_ma()                 # 보유종목 MA 구하기 
         
         # for sCode in self.account_stock_dict.keys():
         #     self.send_order(order = '신규매도', sCode=sCode, quantity=self.account_stock_dict[sCode]['매매가능수량'])
@@ -81,9 +82,8 @@ class Kiwoom(QAxWidget):
     ################# 함수 모음
 
     def calculate_ma(self): 
-        print(self.account_stock_dict)
+        # print(self.account_stock_dict)
         for code , value in self.account_stock_dict.items() : 
-
             self.tr_order.day_chart(code) 
 
 
@@ -165,7 +165,7 @@ class Kiwoom(QAxWidget):
             
             
     
-    def send_order(self,order,sCode,quantity,order_number=''):
+    def send_order(self,order,sCode,quantity,price,trade_type,order_number=''):
         '''
           BSTR sRQName, // 사용자 구분명
           BSTR sScreenNo, // 화면번호
@@ -176,14 +176,19 @@ class Kiwoom(QAxWidget):
           LONG nPrice, // 주문가격
           BSTR sHogaGb,   // 거래구분(혹은 호가구분)은 아래 참고
           BSTR sOrgOrderNo  // 원주문번호. 신규주문에는 공백 입력, 정정/취소시 입력합니다.
+
+          1초에 5회만 주문가능하며 그 이상 주문요청하면 에러 -308을 리턴합니다.
         '''
         
-        state = None 
-        
-        if order == '신규매수' or order == '신규매도':
-            state = 0 
-        else : 
-            state = 1
+        no_price_type = ['시장가','최유리지정가','최우선지정가','시장가IOC','최유리IOC','시장가FOK','최유리FOK','장전시간외종가','장후시간외종가']
+        price_type = ['지정가','조건부지정가','지정가IOC','지정가FOK']
+
+        if trade_type in no_price_type : 
+            price = 0 
+
+        elif trade_type in price_type: 
+            price = price
+            
         
  
         gubun = {'신규매수': 1,
@@ -194,8 +199,30 @@ class Kiwoom(QAxWidget):
                  '매도정정': 6}
         
         gubun_num = gubun[order]
-        
-        
+
+        trade_order = self.realType.SENDTYPE['거래구분'][trade_type]
+
+        '''
+            SENDTYPE = {
+        '거래구분': {
+            '지정가': '00',
+            '시장가': '03',
+            '조건부지정가': '05',
+            '최유리지정가': '06',
+            '최우선지정가': '07',
+            '지정가IOC': '10',
+            '시장가IOC': '13',
+            '최유리IOC': '16',
+            '지정가FOK': '20',
+            '시장가FOK': '23',
+            '최유리FOK': '26',
+            '장전시간외종가': '61',
+            '시간외단일가매매': '62',
+            '장후시간외종가': '81'
+                }
+            }
+        '''
+
         order_success = self.dynamicCall("SendOrder(QString,QString,QString,int,QString,int,int,QString,QString)",
                                  [order,
                                  self.portfolio_stock_dict[sCode]['주문용스크린번호'],
@@ -203,8 +230,8 @@ class Kiwoom(QAxWidget):
                                  gubun_num,
                                  sCode,
                                  quantity,
-                                 state,
-                                 self.realType.SENDTYPE['거래구분']['시장가'],
+                                 price,
+                                 trade_order,
                                  order_number])
         
         return order_success

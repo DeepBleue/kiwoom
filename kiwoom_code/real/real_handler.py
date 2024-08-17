@@ -64,64 +64,128 @@ def real_data_slot(kiwoom,sCode,sRealType,sRealData):
         open = abs(int(open))                                   # 시가
         low = abs(int(low))                                     # 저가
         
-        
         if sCode not in kiwoom.portfolio_stock_dict:
             kiwoom.portfolio_stock_dict.update({sCode:{}})
             
-        kiwoom.portfolio_stock_dict[sCode].update({'체결시간':time_tick})
-        kiwoom.portfolio_stock_dict[sCode].update({'현재가':current_price})
-        kiwoom.portfolio_stock_dict[sCode].update({'전일대비':com_prev_day})
-        kiwoom.portfolio_stock_dict[sCode].update({'등락율':fluctuation})
-        kiwoom.portfolio_stock_dict[sCode].update({'(최우선)매도호가':best_selling_price})
-        kiwoom.portfolio_stock_dict[sCode].update({'(최우선)매수호가':best_buying_price})
-        kiwoom.portfolio_stock_dict[sCode].update({'거래량':volume})
-        kiwoom.portfolio_stock_dict[sCode].update({'누적거래량':cum_volume})
-        kiwoom.portfolio_stock_dict[sCode].update({'고가':high})
-        kiwoom.portfolio_stock_dict[sCode].update({'시가':open})
-        kiwoom.portfolio_stock_dict[sCode].update({'저가':low})
+        kiwoom.portfolio_stock_dict[sCode].update({
+            '체결시간': time_tick, 
+            '현재가': current_price, 
+            '전일대비': com_prev_day, 
+            '등락율': fluctuation, 
+            '(최우선)매도호가': best_selling_price, 
+            '(최우선)매수호가': best_buying_price, 
+            '거래량': volume, 
+            '누적거래량': cum_volume, 
+            '고가': high, 
+            '시가': open, 
+            '저가': low,
+            })
+
+            
+        if sCode in kiwoom.account_stock_dict.keys() and sCode not in kiwoom.jango_dict.keys(): 
+            # 계좌평가잔고내역에서 이평선을 기준으로 매도
+            ma_4 = kiwoom.portfolio_stock_dict[sCode]['ma_4']
+            # ma_9 = kiwoom.portfolio_stock_dict[sCode]['ma_9']
+            ma_14 = kiwoom.portfolio_stock_dict[sCode]['ma_14']
+            # ma_19 = kiwoom.portfolio_stock_dict[sCode]['ma_19']
+
+            ma_5 = (ma_4 * 4 + current_price) / 5
+            # ma_10 = (ma_9 * 9 + current_price) / 10
+            ma_15 = (ma_14 * 14 + current_price) / 15
+            # ma_20 = (ma_19 * 19 + current_price) / 20
+
+            if ma_5 < ma_15 : 
+
+                print(f'계좌평가 잔고내역에서 신규매도를 한다. {sCode}')
+                account_stock = kiwoom.account_stock_dict[sCode]
+
+                order_success = kiwoom.send_order(
+                    order='신규매도',
+                    sCode=sCode,
+                    quantity=account_stock['매매가능수량'],
+                    price=0,
+                    trade_type='시장가',
+                    order_number='')
+                
+                # 주문전달 성공
+                if order_success == 0 :
+                    print('[계좌] 주문 전달 성공')
+                    del kiwoom.account_stock_dict[sCode]    
+
+                # 주문전달 실패 
+                else : 
+                    print('[계좌] 주문 전달 실패')
+
+
+        if sCode in kiwoom.jango_dict.keys():
+
+            jan_dict = kiwoom.jango_dict[sCode]
+            meme_rate = (current_price - jan_dict['매입단가']) / jan_dict['매입단가'] * 100
+            
+            if jan_dict['주문가능수량'] > 0 and  meme_rate < -5:
+                print(f'잔고에서 신규매도 {sCode}')
+                order_success = kiwoom.send_order(
+                    order='신규매도',
+                    sCode=sCode,
+                    quantity=jan_dict['보유수량'],
+                    price=0,
+                    trade_type='시장가',
+                    order_number='')
+            
+                # 주문전달 성공
+                if order_success == 0 :
+                    print('[잔고] 주문 전달 성공')  
+
+                # 주문전달 실패 
+                else : 
+                    print('[잔고] 주문 전달 실패')
+
+            if jan_dict['보유수량'] == 0 : 
+                del kiwoom.jango_dict[sCode] 
+
         
         # print(kiwoom.portfolio_stock_dict)
         
         
-        # 계좌평가잔고내역에 있고 오늘 산 잔고에는 없을 경우 매도 
-        if sCode in kiwoom.account_stock_dict.keys() and sCode not in kiwoom.jango_dict.keys():
-            print(f'계좌평가 잔고내역에서 신규매도를 한다. {sCode}')
-            account_stock = kiwoom.account_stock_dict[sCode]
+        # # 계좌평가잔고내역에 있고 오늘 산 잔고에는 없을 경우 매도 
+        # if sCode in kiwoom.account_stock_dict.keys() and sCode not in kiwoom.jango_dict.keys():
+        #     print(f'계좌평가 잔고내역에서 신규매도를 한다. {sCode}')
+        #     account_stock = kiwoom.account_stock_dict[sCode]
             
-            # meme_rate = (current_price - account_stock['매입가']) / account_stock['매입가'] * 100
+        #     # meme_rate = (current_price - account_stock['매입가']) / account_stock['매입가'] * 100
             
             
-            # if account_stock['매매가능수량'] > 0 and (meme_rate > 5 or meme_rate < -5):
+        #     # if account_stock['매매가능수량'] > 0 and (meme_rate > 5 or meme_rate < -5):
                 
-            order_success = kiwoom.send_order(order = '신규매도', sCode=sCode, quantity=account_stock['매매가능수량'])
+        #     order_success = kiwoom.send_order(order = '신규매도', sCode=sCode, quantity=account_stock['매매가능수량'])
             
-            # 주문전달 성공
-            if order_success == 0 :
-                print('주문 전달 성공')
-                del kiwoom.account_stock_dict[sCode]    # 이건 너무 간단한 식임.. 고려하샘 
+        #     # 주문전달 성공
+        #     if order_success == 0 :
+        #         print('주문 전달 성공')
+        #         del kiwoom.account_stock_dict[sCode]    # 이건 너무 간단한 식임.. 고려하샘 
 
-            # 주문전달 실패 
-            else : 
-                print('주문 전달 실패')
+        #     # 주문전달 실패 
+        #     else : 
+        #         print('주문 전달 실패')
         
 
-        # 오늘 산 잔고에 종목에 있을 경우 매도
-        if sCode in kiwoom.jango_dict.keys():
+        # # 오늘 산 잔고에 종목에 있을 경우 매도
+        # if sCode in kiwoom.jango_dict.keys():
             
-            jan_dict = kiwoom.jango_dict[sCode]
-            # meme_rate = (current_price - jan_dict['매입단가']) / jan_dict['매입단가'] * 100
+        #     jan_dict = kiwoom.jango_dict[sCode]
+        #     # meme_rate = (current_price - jan_dict['매입단가']) / jan_dict['매입단가'] * 100
             
-            # if jan_dict['주문가능수량'] > 0 and (meme_rate > 5 or meme_rate < -5):
-            #     print(f'잔고에서 신규매도 {sCode}')
-            order_success = kiwoom.send_order(order = '신규매도', sCode=sCode, quantity=jan_dict['보유수량'])
+        #     # if jan_dict['주문가능수량'] > 0 and (meme_rate > 5 or meme_rate < -5):
+        #     #     print(f'잔고에서 신규매도 {sCode}')
+        #     order_success = kiwoom.send_order(order = '신규매도', sCode=sCode, quantity=jan_dict['보유수량'])
             
-            # 주문전달 성공
-            if order_success == 0 :
-                print('주문 전달 성공')
+        #     # 주문전달 성공
+        #     if order_success == 0 :
+        #         print('주문 전달 성공')
 
-            # 주문전달 실패 
-            else : 
-                print('주문 전달 실패')
+        #     # 주문전달 실패 
+        #     else : 
+        #         print('주문 전달 실패')
         
         # 등락률이 2.0% 이상이고 오늘 산 잔고에 없을 경우 신규매수
         # elif fluctuation > 2.0 and sCode not in kiwoom.jango_dict.keys():

@@ -1,4 +1,6 @@
 import numpy as np    
+from datetime import datetime
+
 
 
 def trdata_slot(kiwoom, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
@@ -47,14 +49,16 @@ def trdata_slot(kiwoom, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
                 pass
             else: 
                 kiwoom.account_stock_dict[code] = {}
-            
-            kiwoom.account_stock_dict[code].update({"종목명":code_name})
-            kiwoom.account_stock_dict[code].update({"보유수량":stock_quantity})
-            kiwoom.account_stock_dict[code].update({"매입가":buy_price})
-            kiwoom.account_stock_dict[code].update({"수익률(%)":earn_rate})
-            kiwoom.account_stock_dict[code].update({"현재가":current_price})
-            kiwoom.account_stock_dict[code].update({"매입금액":total_buy_amount})
-            kiwoom.account_stock_dict[code].update({"매매가능수량":possible_quantity})
+
+            kiwoom.account_stock_dict[code].update(
+                {"종목명": code_name, 
+                 "보유수량": stock_quantity, 
+                 "매입가": buy_price, 
+                 "수익률(%)": earn_rate, 
+                 "현재가": current_price, 
+                 "매입금액": total_buy_amount, 
+                 "매매가능수량": possible_quantity})
+
 
         if sPrevNext == '2': 
             kiwoom.account_eval(sPrevNext='2')
@@ -91,55 +95,61 @@ def trdata_slot(kiwoom, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
             else: 
                 kiwoom.michaegul_dict[order_no] = {}
                 
-            _michaegul_dict = kiwoom.michaegul_dict[order_no]
-            _michaegul_dict.update({'종목코드':code})
-            _michaegul_dict.update({'종목명':code_name})
-            _michaegul_dict.update({'주문번호':order_no})
-            _michaegul_dict.update({'주문상태':status})
-            _michaegul_dict.update({'주문수량':quantity})
-            _michaegul_dict.update({'주문가격':price})
-            _michaegul_dict.update({'주문구분':order})
-            _michaegul_dict.update({'미체결수량':michaegul_num})
-            _michaegul_dict.update({'체결량':chagul_num})
+            kiwoom.michaegul_dict[order_no].update(
+                {'종목코드': code, 
+                 '종목명': code_name, 
+                 '주문번호': order_no, 
+                 '주문상태': status, 
+                 '주문수량': quantity, 
+                 '주문가격': price, 
+                 '주문구분': order, 
+                 '미체결수량': michaegul_num, 
+                 '체결량': chagul_num})
+
         
         print(f'미체결 종목 개수 : {len(kiwoom.michaegul_dict)}')
         kiwoom.michaegul_event_loop.exit()
     
     elif sRQName == '주식일봉차트초회요청': 
+
+        today_date = datetime.today().strftime('%Y%m%d')
+
         code = kiwoom.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,0,'종목코드') 
         rows = kiwoom.dynamicCall("GetRepeatCnt(QString,QString)",sTrCode,sRQName)
 
         code = code.strip()
         print(f'code : {code}')
+        print(f'today : {today_date}')
         
         ma_4, ma_9, ma_14, ma_19 = [], [], [], []
         for i in range(rows):
             close = int(kiwoom.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'현재가').strip())
             date = kiwoom.dynamicCall("GetCommData(String,String,int,String)",sTrCode,sRQName,i,'일자').strip()
             
-            if i < 4: ma_4.append(close)
-            if i < 9: ma_9.append(close)
-            if i < 14: ma_14.append(close)
-            if i < 19: ma_19.append(close)
+            print(f'[{date}]-close : {close}')
+            if date < today_date : 
+                if len(ma_4) < 4: ma_4.append(close)
+                if len(ma_9) < 9: ma_9.append(close)
+                if len(ma_14) < 14: ma_14.append(close)
+                if len(ma_19) < 19: ma_19.append(close)
         
+        # print(ma_4)
         ma_4 = np.mean(np.array(ma_4))
         ma_9 = np.mean(np.array(ma_9))
         ma_14 = np.mean(np.array(ma_14))
         ma_19 = np.mean(np.array(ma_19))
 
-        if code not in kiwoom.account_stock_dict:
-            kiwoom.account_stock_dict[code] = {}
+        if code not in kiwoom.portfolio_stock_dict:
+            kiwoom.portfolio_stock_dict[code] = {}
 
-        kiwoom.account_stock_dict[code].update({"ma_4":ma_4})
-        kiwoom.account_stock_dict[code].update({"ma_9":ma_9})
-        kiwoom.account_stock_dict[code].update({"ma_14":ma_14})
-        kiwoom.account_stock_dict[code].update({"ma_19":ma_19})
-        
-        print(ma_4)
-        print(ma_9)
-        print(ma_14)
-        print(ma_19)
-        print(kiwoom.account_stock_dict)
+        kiwoom.portfolio_stock_dict[code].update({
+            "ma_4": ma_4, 
+            "ma_9": ma_9, 
+            "ma_14": ma_14, 
+            "ma_19": ma_19})
+
+    
+        print(kiwoom.portfolio_stock_dict)
         kiwoom.day_chart_event_loop.exit()
   
             # if sPrevNext == '2':
