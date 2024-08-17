@@ -1,7 +1,7 @@
 @ECHO ON
 title Kiwoom Start
 
-cd C:\Users\Administrator\Desktop\kiwoom
+cd C:\Users\pari0\Desktop\kiwoom
 
 call activate trade_32bit
 

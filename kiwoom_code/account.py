@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QAxContainer import *
 from config.kiwoomType import *
 from config.errorCode import errors
-from kiwoom_code.trdata_handler import trdata_slot
 
 
 class AccountFunctions:
@@ -14,14 +13,7 @@ class AccountFunctions:
 
     def get_ocx_instance(self):
         self.kiwoom.setControl('KHOPENAPI.KHOpenAPICtrl.1')  
-    
-    def event_slot(self):
-        self.kiwoom.OnEventConnect.connect(self.login_slot)
-        self.kiwoom.OnReceiveTrData.connect(self.handle_trdata_slot)
-        self.kiwoom.OnReceiveMsg.connect(self.msg_slot)
 
-    def handle_trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
-        trdata_slot(self.kiwoom, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext)
         
     def login_slot(self, errCode):
         err = errors(errCode)
